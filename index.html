@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>টেলিকম অ্যাডমিন প্যানেল (Web)</title>
+  <style>
+    :root {
+      --primary: #1976d2;
+      --purple: #6a1b9a;
+      --green: #2e7d32;
+      --red: #c62828;
+      --orange: #ef6c00;
+      --bg: #f0f2f5;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; background: var(--bg); color: #222; }
+    header {
+      background: linear-gradient(135deg, #1565c0, #4a148c);
+      color: #fff; padding: 14px 18px; display: flex;
+      justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    header h2 { margin: 0; font-size: 18px; }
+    .sub-date { font-size: 12px; opacity: 0.9; margin-top: 2px; }
+    .container { max-width: 1050px; margin: 16px auto; padding: 0 12px 40px; }
+    .card {
+      background: #fff; border-radius: 14px; padding: 16px;
+      margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; border-radius: 8px;
+      border: 1px solid #cfd8dc; font-size: 14px; margin-bottom: 10px; background: #fff;
+    }
+    button {
+      padding: 9px 14px; border-radius: 8px; border: none;
+      color: #fff; font-weight: 600; cursor: pointer; font-size: 13px;
+    }
+    button:active { transform: scale(0.98); }
+    .btn-primary { background: var(--primary); }
+    .btn-purple { background: var(--purple); }
+    .btn-green { background: var(--green); }
+    .btn-red { background: var(--red); }
+    .btn-orange { background: var(--orange); }
+    .btn-gray { background: #546e7a; }
+    .nav-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      gap: 8px; margin-bottom: 16px;
+    }
+    .nav-btn {
+      padding: 12px 10px; border-radius: 10px; background: #fff; color: #333;
+      border: 2px solid #e0e0e0; text-align: center; font-weight: 700; cursor: pointer;
+    }
+    .nav-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .badge {
+      background: #e53935; color: #fff; padding: 2px 8px;
+      border-radius: 20px; font-size: 11px; margin-left: 4px;
+    }
+    .item-box {
+      border: 2px solid #cfd8dc; border-radius: 12px; padding: 14px;
+      margin-bottom: 12px; background: #fafafa;
+    }
+    .item-box.pending { border-color: #ff9800; background: #fffdf5; }
+    .item-box.approved { border-color: #4caf50; }
+    .item-box.cancelled { border-color: #f44336; }
+    .item-box.user-card { border-color: #9c27b0; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .row > * { flex: 1; min-width: 120px; }
+    .hidden { display: none !important; }
+    .chat-box {
+      height: 320px; overflow-y: auto; border: 1px solid #ddd;
+      border-radius: 10px; padding: 12px; background: #f9f9f9; margin-bottom: 10px;
+    }
+    .msg { max-width: 75%; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px; font-size: 13.5px; clear: both; }
+    .msg.admin { background: #1976d2; color: #fff; float: right; }
+    .msg.user { background: #e0e0e0; color: #000; float: left; }
+    .summary-bar {
+      display: flex; gap: 12px; flex-wrap: wrap; background: #e3f2fd;
+      padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; font-weight: bold; font-size: 13.5px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h2>টেলিকম অ্যাডমিন প্যানেল 📱➡️💻</h2>
+    <div id="todayDate" class="sub-date"></div>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <button id="btnSound" class="btn-orange" onclick="toggleSound()">সাউন্ড: ON 🔊</button>
+    <button id="btnLogout" class="btn-red hidden" onclick="logout()">লগআউট 🚪</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- লগইন বক্স -->
+  <div id="loginBox" class="card" style="max-width:420px; margin: 50px auto;">
+    <h3 style="margin-top:0;">অ্যাডমিন লগইন 🔐</h3>
+    <input type="email" id="loginEmail" placeholder="অ্যাডমিন ইমেইল" />
+    <input type="password" id="loginPass" placeholder="পাসওয়ার্ড" />
+    <button class="btn-primary" style="width:100%; padding:12px;" onclick="login()">লগইন করুন</button>
+    <p id="loginError" style="color:#c62828; font-size:13px; margin-bottom:0;"></p>
+  </div>
+
+  <!-- মেইন ড্যাশবোর্ড -->
+  <div id="dashboard" class="hidden">
+    <div class="nav-grid">
+      <div class="nav-btn active" onclick="switchTab('pending', this)">পেন্ডিং <span id="pendingBadge" class="badge">0</span></div>
+      <div class="nav-btn" onclick="switchTab('history', this)">অল হিস্টোরি 📋</div>
+      <div class="nav-btn" onclick="switchTab('users', this)">ইউজার লিস্ট 👥</div>
+      <div class="nav-btn" onclick="switchTab('adduser', this)">নতুন ইউজার ➕</div>
+      <div class="nav-btn" onclick="switchTab('offers', this)">ড্রাইভ অফার 🎯</div>
+      <div class="nav-btn" onclick="switchTab('chat', this)">লাইভ চ্যাট <span id="chatBadge" class="badge">0</span></div>
+      <div class="nav-btn" onclick="switchTab('settings', this)">সেটিংস ⚙️</div>
+      <div class="nav-btn" onclick="switchTab('hisab', this)">হিসেব খাতা 📓</div>
+    </div>
+
+    <!-- ১. পেন্ডিং রিকোয়েস্ট -->
+    <div id="tab-pending" class="card">
+      <h3>পেন্ডিং রিকোয়েস্টসমূহ ⏳</h3>
+      <div id="pendingList">লোড হচ্ছে...</div>
+    </div>
+
+    <!-- ২. অল হিস্টোরি -->
+    <div id="tab-history" class="card hidden">
+      <h3>সকল লেনদেনের ইতিহাস 📋</h3>
+      <div class="row">
+        <input type="text" id="histSearch" placeholder="ইমেইল, নাম্বার বা আইডি দিয়ে খুঁজুন..." oninput="renderHistory()" />
+        <select id="histStatus" onchange="renderHistory()">
+          <option value="ALL">সব অবস্থা</option>
+          <option value="Approved">Approved</option>
+          <option value="Cancelled">Cancelled</option>
+          <option value="Pending">Pending</option>
+        </select>
+      </div>
+      <div id="histSummary" class="summary-bar"></div>
+      <div id="historyList">লোড হচ্ছে...</div>
+    </div>
+
+    <!-- ৩. ইউজার লিস্ট -->
+    <div id="tab-users" class="card hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <h3 style="margin:0;">ইউজার লিস্ট 👥</h3>
+        <div id="totalSystemBal" style="font-weight:bold; color:#1976d2;"></div>
+      </div>
+      <input type="text" id="userSearch" style="margin-top:10px;" placeholder="ইমেইল দিয়ে ইউজার খুঁজুন..." oninput="renderUsers()" />
+      <div id="usersList">লোড হচ্ছে...</div>
+    </div>
+
+    <!-- ৪. নতুন ইউজার তৈরি -->
+    <div id="tab-adduser" class="card hidden" style="max-width:550px;">
+      <h3>নতুন ইউজার তৈরি করুন 👤</h3>
+      <input type="email" id="newEmail" placeholder="জিমেইল একাউন্ট (বাধ্যতামূলক)" />
+      <input type="password" id="newPass" placeholder="পাসওয়ার্ড (কমপক্ষে ৬ ডিজিট)" />
+      <input type="text" id="newAppLink" placeholder="অ্যাপ ডাউনলোড লিংক [ঐচ্ছিক]" />
+      <input type="text" id="newNidName" placeholder="আইডি কার্ড অনুযায়ী নাম" />
+      <input type="date" id="newDob" />
+      <input type="text" id="newPhone" placeholder="মোবাইল নাম্বার (১১ ডিজিট)" />
+      <textarea id="newAddress" placeholder="ঠিকানা"></textarea>
+      <button class="btn-green" style="width:100%; padding:12px;" onclick="createNewUser()">তৈরি করুন 💾</button>
+    </div>
+
+    <!-- ৫. ড্রাইভ অফার কন্ট্রোল -->
+    <div id="tab-offers" class="card hidden">
+      <h3>ড্রাইভ অফার ম্যানেজমেন্ট 🎯</h3>
+      <div class="row">
+        <select id="offerOp" onchange="loadOffers()">
+          <option value="Grameenphone">গ্রামীণফোন</option>
+          <option value="Banglalink">বাংলালিংক</option>
+          <option value="Robi">রবি</option>
+          <option value="Airtel">এয়ারটেল</option>
+          <option value="Teletalk">টেলিটক</option>
+        </select>
+        <select id="offerCat" onchange="loadOffers()">
+          <option value="MB">এমবি (MB)</option>
+          <option value="Minute">মিনিট (Minute)</option>
+          <option value="Bundle">বান্ডিল (Bundle)</option>
+          <option value="CallRate">কলরেট (CallRate)</option>
+        </select>
+      </div>
+      <div class="row">
+        <input type="text" id="offerTitle" placeholder="অফারের বিবরণ (যেমন: ৫০ জিবি ৩০ দিন)" />
+        <input type="number" id="offerPrice" placeholder="মূল্য (৳)" />
+        <input type="number" id="offerCashback" placeholder="ক্যাশব্যাক (৳) [০ রাখলে নেই]" />
+      </div>
+      <button class="btn-green" onclick="addOffer()">+ অফার যোগ করুন</button>
+      <div id="offersList" style="margin-top:14px;"></div>
+    </div>
+
+    <!-- ৬. লাইভ চ্যাট -->
+    <div id="tab-chat" class="card hidden">
+      <h3>গ্রাহক লাইভ চ্যাট 💬</h3>
+      <div class="row">
+        <div style="flex:1; min-width:220px;">
+          <div id="chatUserList">লোড হচ্ছে...</div>
+        </div>
+        <div style="flex:2; min-width:260px;">
+          <h4 id="activeChatTitle" style="margin-top:0;">বাম থেকে একজন গ্রাহক সিলেক্ট করুন</h4>
+          <div id="chatMessages" class="chat-box"></div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="chatInput" placeholder="রিপ্লাই লিখুন..." style="margin:0;" />
+            <button class="btn-primary" onclick="sendAdminReply()">পাঠান</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ৭. প্রোমো ও সার্ভিস সেটিংস -->
+    <div id="tab-settings" class="card hidden">
+      <h3>অন্যান্য সেটিংস ও প্রোমো কন্ট্রোল ⚙️</h3>
+
+      <h4>📝 চলন্ত নোটিশ ও বিজ্ঞাপন</h4>
+      <input type="text" id="setNotice" placeholder="চলন্ত নোটিশ" />
+      <div class="row">
+        <input type="text" id="setAdTitle" placeholder="বিজ্ঞাপন টাইটেল" />
+        <input type="text" id="setAdLink" placeholder="বিজ্ঞাপন লিংক" />
+      </div>
+      <button class="btn-green" onclick="savePromoBasic()">নোটিশ ও বিজ্ঞাপন সেভ</button>
+
+      <hr style="margin:18px 0;" />
+      <h4>📱 এড ব্যালেন্স নাম্বার ও চার্জ (%)</h4>
+      <div class="row">
+        <input type="text" id="setBkash1" placeholder="বিকাশ ১" />
+        <input type="text" id="setBkash2" placeholder="বিকাশ ২" />
+        <input type="text" id="setBank" placeholder="ব্যাংক ডিটেইলস" />
+      </div>
+      <div class="row">
+        <input type="number" step="0.01" id="setAddCharge" placeholder="এড ব্যালেন্স চার্জ %" />
+        <input type="number" step="0.01" id="setTransferCharge" placeholder="ইউজার টু ইউজার ট্রান্সফার চার্জ (৳)" />
+        <input type="text" id="setHelpline" placeholder="হেল্পলাইন নাম্বার" />
+      </div>
+      <button class="btn-primary" onclick="savePaymentAndHelpline()">নাম্বার ও চার্জ সেভ 💾</button>
+    </div>
+
+    <!-- ৮. হিসেব খাতা (Cloud Synced) -->
+    <div id="tab-hisab" class="card hidden">
+      <h3>হিসেব খাতা (ক্লাউড সিঙ্ক) 📓</h3>
+      <div id="hisabSummary" class="summary-bar"></div>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <input type="text" id="newHisabName" placeholder="নতুন কাস্টমারের নাম" style="margin:0;" />
+        <button class="btn-purple" onclick="addHisabCustomer()">+ খাতা খুলুন</button>
+      </div>
+      <div id="hisabCustomerList">লোড হচ্ছে...</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+  import { getDatabase, ref, onValue, get, set, update, push, remove, query, orderByChild, equalTo, limitToLast } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCxq__aze1p9YaBg0Om7ZNDHZCCEVBGi8Y",
+    authDomain: "mysimserver.firebaseapp.com",
+    databaseURL: "https://mysimserver-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "mysimserver",
+    storageBucket: "mysimserver.firebasestorage.app",
+    messagingSenderId: "511832442349",
+    appId: "1:511832442349:web:f49caf2caddde5a4e153e4",
+    measurementId: "G-Z5ZL068V12"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  // সেকেন্ডারি অ্যাপ (নতুন ইউজার খোলার সময় অ্যাডমিন যেন লগআউট না হয়)
+  const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+  const secondaryAuth = getAuth(secondaryApp);
+
+  let soundOn = true;
+  let allHistoryData = [];
+  let allUsersData = [];
+  let activeChatCleanEmail = null;
+  let chatMsgUnsub = null;
+  let hisabCustomers = [];
+
+  document.getElementById("todayDate").innerText = new Date().toLocaleDateString("bn-BD", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric"
+  });
+
+  function esc(str) {
+    return String(str ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+  }
+  function cleanEmailKey(email) {
+    return (email || "").trim().replace(/\./g, ",");
+  }
+  function nowFormatted() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    let h = d.getHours();
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(h)}:${pad(d.getMinutes())} ${ampm}`;
+  }
+  function playBeep() {
+    if (!soundOn) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {}
+  }
+
+  window.toggleSound = () => {
+    soundOn = !soundOn;
+    document.getElementById("btnSound").innerText = soundOn ? "সাউন্ড: ON 🔊" : "সাউন্ড: OFF 🔇";
+    if (soundOn) playBeep();
+  };
+
+  window.login = async () => {
+    const email = document.getElementById("loginEmail").value.trim();
+    const pass = document.getElementById("loginPass").value.trim();
+    document.getElementById("loginError").innerText = "";
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (e) {
+      document.getElementById("loginError").innerText = "লগইন ব্যর্থ: " + e.message;
+    }
+  };
+
+  window.logout = () => signOut(auth);
+
+  window.switchTab = (tab, el) => {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    if (el) el.classList.add("active");
+    ["pending","history","users","adduser","offers","chat","settings","hisab"].forEach(t => {
+      document.getElementById("tab-" + t).classList.toggle("hidden", t !== tab);
+    });
+    if (tab === "offers") loadOffers();
+  };
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+      document.getElementById("btnLogout").classList.remove("hidden");
+      initDashboard();
+    } else {
+      document.getElementById("loginBox").classList.remove("hidden");
+      document.getElementById("dashboard").classList.add("hidden");
+      document.getElementById("btnLogout").classList.add("hidden");
+    }
+  });
+
+  function initDashboard() {
+    // ১. পেন্ডিং রিকোয়েস্ট
+    onValue(query(ref(db, "Requests"), orderByChild("status"), equalTo("Pending")), (snap) => {
+      const listEl = document.getElementById("pendingList");
+      listEl.innerHTML = "";
+      let count = 0;
+      if (snap.exists()) {
+        snap.forEach((child) => {
+          count++;
+          const id = child.key;
+          const r = child.val();
+          const div = document.createElement("div");
+          div.className = "item-box pending";
+          div.innerHTML = `
+            <div><b>টাইপ:</b> ${esc(r.type)} ➡️ <b style="color:#00539C">${esc(r.number)}</b></div>
+            <div><b>ইউজার:</b> ${esc(r.email)}</div>
+            <div><b>টাকা:</b> <b style="color:#d32f2f">৳ ${Number(r.amount || 0).toFixed(2)}</b> | <b>সময়:</b> ${esc(r.time)}</div>
+            <div class="row" style="margin-top:8px;">
+              <input id="tx_${id}" placeholder="Text ID (ঐচ্ছিক)" style="margin:0;" />
+              <input id="pin_${id}" placeholder="PIN (ঐচ্ছিক)" style="margin:0;" />
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <button class="btn-gray" onclick="navigator.clipboard.writeText('${esc(r.number)}')">নাম্বার কপি 📋</button>
+              <button class="btn-green" onclick="approveRequest('${id}')">এপ্রুভ ✅</button>
+              <button class="btn-red" onclick="cancelRequest('${id}')">বাতিল ❌</button>
+            </div>
+          `;
+          listEl.prepend(div);
+        });
+      } else {
+        listEl.innerHTML = "<p>কোনো পেন্ডিং রিকোয়েস্ট নেই।</p>";
+      }
+      document.getElementById("pendingBadge").innerText = count;
+      if (count > 0) playBeep();
+    });
+
+    // ২. অল হিস্টোরি (সর্বশেষ ৩০০টি)
+    onValue(query(ref(db, "Requests"), limitToLast(300)), (snap) => {
+      allHistoryData = [];
+      if (snap.exists()) {
+        snap.forEach(c => allHistoryData.unshift({ id: c.key, ...c.val() }));
+      }
+      renderHistory();
+    });
+
+    // ৩. ইউজার লিস্ট
+    onValue(ref(db, "Users"), (snap) => {
+      allUsersData = [];
+      let totalBal = 0;
+      if (snap.exists()) {
+        snap.forEach(c => {
+          const val = c.val();
+          totalBal += Number(val.balance || 0);
+          allUsersData.push({ key: c.key, ...val });
+        });
+      }
+      document.getElementById("totalSystemBal").innerText = `মোট ইউজার: ${allUsersData.length} | মোট ব্যালেন্স: ৳ ${totalBal.toFixed(2)}`;
+      renderUsers();
+    });
+
+    // ৪. চ্যাট লিস্ট
+    onValue(ref(db, "Chats"), (snap) => {
+      const box = document.getElementById("chatUserList");
+      box.innerHTML = "";
+      let unread = 0;
+      if (snap.exists()) {
+        snap.forEach(c => {
+          const v = c.val();
+          const isUnread = v.status === "unread_by_admin";
+          if (isUnread) unread++;
+          const btn = document.createElement("div");
+          btn.className = "item-box";
+          btn.style.cursor = "pointer";
+          btn.style.borderColor = isUnread ? "#e91e63" : "#cfd8dc";
+          btn.innerHTML = `<b>${esc(v.userEmail || c.key)}</b> ${isUnread ? "🔴" : ""}`;
+          btn.onclick = () => openChat(c.key, v.userEmail || c.key);
+          box.appendChild(btn);
+        });
+      }
+      document.getElementById("chatBadge").innerText = unread;
+    });
+
+    // ৫. সেটিংস লোড
+    onValue(ref(db, "Promo"), (snap) => {
+      if (!snap.exists()) return;
+      const p = snap.val();
+      document.getElementById("setNotice").value = p.notice || "";
+      document.getElementById("setAdTitle").value = p.adTitle || "";
+      document.getElementById("setAdLink").value = p.adLink || "";
+      document.getElementById("setAddCharge").value = p.addBalanceChargePercent ?? "";
+      document.getElementById("setTransferCharge").value = p.transferCharge ?? "";
+    });
+    onValue(ref(db, "AdminNumbers"), (snap) => {
+      if (!snap.exists()) return;
+      const a = snap.val();
+      document.getElementById("setBkash1").value = a.bkash1 || "";
+      document.getElementById("setBkash2").value = a.bkash2 || "";
+      document.getElementById("setBank").value = a.bank || "";
+    });
+    onValue(ref(db, "SocialLinks/phone"), (snap) => {
+      if (snap.exists()) document.getElementById("setHelpline").value = snap.val() || "";
+    });
+
+    // ৬. হিসেব খাতা
+    onValue(ref(db, "AdminHisab/customers"), (snap) => {
+      try {
+        hisabCustomers = snap.exists() ? JSON.parse(snap.val() || "[]") : [];
+      } catch (e) { hisabCustomers = []; }
+      renderHisab();
+    });
+  }
+
+  // রিকোয়েস্ট Approve
+  window.approveRequest = async (id) => {
+    const snap = await get(ref(db, "Requests/" + id));
+    if (!snap.exists()) return;
+    const req = snap.val();
+    const textId = document.getElementById("tx_" + id)?.value.trim() || "N/A";
+    const pin = document.getElementById("pin_" + id)?.value.trim() || "N/A";
+    const cleanEmail = cleanEmailKey(req.email || "");
+    const type = req.type || "";
+    const typeLower = type.toLowerCase();
+
+    // ডিভাইস/লগইন অনুমোদন
+    if (type.includes("ডিভাইস") || type.includes("লগইন")) {
+      const updates = {
+        [`Users/${cleanEmail}/loginRequest/status`]: "approved",
+        [`Requests/${id}/status`]: "Approved",
+        [`Requests/${id}/textId`]: textId,
+        [`Requests/${id}/pin`]: pin
+      };
+      if (req.number && req.number.includes("ID: ")) {
+        const devId = req.number.split("ID: ")[1].replace(")", "").trim();
+        if (devId) updates[`Users/${cleanEmail}/currentDeviceId`] = devId;
+      }
+      await update(ref(db), updates);
+      return alert("ডিভাইস/লগইন এপ্রুভ হয়েছে! ✅");
+    }
+
+    // এড ব্যালেন্স / পেমেন্ট অনুমোদন
+    if (type.includes("এড ব্যালেন্স") || type.includes("পেমেন্ট") || typeLower.includes("add balance") || typeLower.includes("payment")) {
+      const balSnap = await get(ref(db, `Users/${cleanEmail}/balance`));
+      const curBal = Number(balSnap.val() || 0);
+      const amt = Number(req.amount || 0);
+      const promoSnap = await get(ref(db, "Promo"));
+      const promo = promoSnap.val() || {};
+      const rate = Number(promo.addBalanceChargePercent || 0);
+      const charge = amt * (rate / 100);
+      const net = amt - charge;
+      const newBal = Math.max(0, curBal + net);
+
+      await update(ref(db), {
+        [`Users/${cleanEmail}/balance`]: newBal,
+        [`Requests/${id}/status`]: "Approved",
+        [`Requests/${id}/prevBalance`]: curBal,
+        [`Requests/${id}/newBalance`]: newBal,
+        [`Requests/${id}/textId`]: textId,
+        [`Requests/${id}/pin`]: pin,
+        [`Requests/${id}/commission`]: charge,
+        [`Requests/${id}/isCharge`]: true
+      });
+      return alert("পেমেন্ট/এড ব্যালেন্স এপ্রুভ হয়েছে! ✅");
+    }
+
+    // সাধারণ লেনদেন
+    await update(ref(db, "Requests/" + id), { status: "Approved", textId, pin });
+    alert("এপ্রুভ সফল হয়েছে! ✅");
+  };
+
+  // রিকোয়েস্ট Cancel
+  window.cancelRequest = async (id) => {
+    const snap = await get(ref(db, "Requests/" + id));
+    if (!snap.exists()) return;
+    const req = snap.val();
+    const reason = document.getElementById("tx_" + id)?.value.trim() || "বাতিল করা হয়েছে";
+    const cleanEmail = cleanEmailKey(req.email || "");
+
+    await update(ref(db, "Requests/" + id), {
+      status: "Cancelled", textId: reason, pin: reason, cancelReason: reason
+    });
+
+    const tLower = (req.type || "").toLowerCase();
+    const isBill = tLower.includes("বিল") || tLower.includes("bill") || tLower.includes("paybill");
+    const isIgnoreRefund = !isBill && (
+      tLower.includes("যোগ") || tLower.includes("এড ব্যালেন্স") || tLower.includes("add balance") ||
+      tLower.includes("deposit") || tLower.includes("ডোনেশন") || tLower === "পেমেন্ট" || tLower === "payment"
+    );
+
+    if (!isIgnoreRefund && cleanEmail) {
+      const balSnap = await get(ref(db, `Users/${cleanEmail}/balance`));
+      const curBal = Number(balSnap.val() || 0);
+      const refund = Number(req.cost > 0 ? req.cost : req.amount || 0);
+      await update(ref(db), {
+        [`Users/${cleanEmail}/balance`]: curBal + refund,
+        [`Requests/${id}/newBalance`]: curBal + refund
+      });
+    }
+    alert("রিকোয়েস্ট বাতিল করা হয়েছে ❌");
+  };
+
+  // অল হিস্টোরি রেন্ডার
+  window.renderHistory = () => {
+    const q = document.getElementById("histSearch").value.trim().toLowerCase();
+    const st = document.getElementById("histStatus").value;
+    const box = document.getElementById("historyList");
+    box.innerHTML = "";
+    let appSum = 0, canSum = 0, appCnt = 0, canCnt = 0;
+
+    allHistoryData.filter(r => {
+      if (st !== "ALL" && r.status !== st) return false;
+      if (!q) return true;
+      return (r.email || "").toLowerCase().includes(q) ||
+             (r.number || "").toLowerCase().includes(q) ||
+             (r.type || "").toLowerCase().includes(q) ||
+             (r.id || "").toLowerCase().includes(q);
+    }).forEach(r => {
+      const amt = Number(r.amount || 0);
+      if (r.status === "Approved" || r.status === "Success") { appSum += amt; appCnt++; }
+      if (r.status === "Cancelled" || r.status === "Rejected") { canSum += amt; canCnt++; }
+
+      const cls = r.status === "Approved" ? "approved" : (r.status === "Cancelled" ? "cancelled" : "pending");
+      const div = document.createElement("div");
+      div.className = `item-box ${cls}`;
+      div.innerHTML = `
+        <div><b>সময়:</b> ${esc(r.time)} | <b>অবস্থা:</b> ${esc(r.status)}</div>
+        <div><b>ইউজার:</b> ${esc(r.email)}</div>
+        <div><b>টাইপ:</b> ${esc(r.type)} ➡️ <b>${esc(r.number)}</b></div>
+        <div><b>অ্যামাউন্ট:</b> ৳ ${amt.toFixed(2)} | <b>TextID:</b> ${esc(r.textId || "N/A")}</div>
+      `;
+      box.appendChild(div);
+    });
+
+    document.getElementById("histSummary").innerHTML =
+      `<span style="color:#2e7d32">এপ্রুভ: ৳ ${appSum.toFixed(2)} (${appCnt} টি)</span> | ` +
+      `<span style="color:#c62828">বাতিল: ৳ ${canSum.toFixed(2)} (${canCnt} টি)</span>`;
+  };
+
+  // ইউজার লিস্ট রেন্ডার
+  window.renderUsers = () => {
+    const q = document.getElementById("userSearch").value.trim().toLowerCase();
+    const box = document.getElementById("usersList");
+    box.innerHTML = "";
+    allUsersData.filter(u => (u.email || "").toLowerCase().includes(q)).forEach(u => {
+      const isLocked = (u.status || "").toLowerCase() === "locked";
+      const div = document.createElement("div");
+      div.className = "item-box user-card";
+      div.innerHTML = `
+        <div><b>ইমেইল:</b> ${esc(u.email)}</div>
+        <div><b>ব্যালেন্স:</b> <b style="color:#2e7d32">৳ ${Number(u.balance || 0).toFixed(2)}</b> | <b>স্টক লক:</b> ৳ ${Number(u.stockBalance || 0)} | <b>অবস্থা:</b> ${esc(u.status || "Active")}</div>
+        <div style="font-size:12px; color:#555;">ডিভাইস: ${esc(u.deviceName || "Unknown")} | লাস্ট লগইন: ${esc(u.lastLogin || "N/A")}</div>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn-green" onclick="adjustBalance('${u.key}', '${esc(u.email)}', true)">ব্যালেন্স দিন (+)</button>
+          <button class="btn-red" onclick="adjustBalance('${u.key}', '${esc(u.email)}', false)">কাটুন (-)</button>
+          <button class="btn-orange" onclick="toggleLock('${u.key}', '${isLocked ? "Active" : "Locked"}')">${isLocked ? "আনলক 🔓" : "লক 🔒"}</button>
+          <button class="btn-purple" onclick="setStockBal('${u.key}', ${Number(u.stockBalance || 0)})">স্টক ব্যালেন্স</button>
+        </div>
+      `;
+      box.appendChild(div);
+    });
+  };
+
+  window.adjustBalance = async (cleanKey, email, isAdd) => {
+    const amt = Number(prompt(isAdd ? "কত টাকা যোগ করবেন?" : "কত টাকা কাটবেন?"));
+    if (!amt || amt <= 0) return;
+    const note = prompt("বিবরণ/খাত লিখুন:", "এডমিন ওয়েব") || "ওয়েব প্যানেল";
+
+    const balSnap = await get(ref(db, `Users/${cleanKey}/balance`));
+    const curBal = Number(balSnap.val() || 0);
+    const newBal = isAdd ? curBal + amt : curBal - amt;
+    if (newBal < 0) return alert("ব্যালেন্স মাইনাস হতে পারবে না!");
+
+    const reqKey = push(ref(db, "Requests")).key;
+    await update(ref(db), {
+      [`Users/${cleanKey}/balance`]: newBal,
+      [`Requests/${reqKey}`]: {
+        id: reqKey, email,
+        type: isAdd ? "ব্যালেন্স যোগ (এডমিন)" : "ব্যালেন্স কর্তন (এডমিন)",
+        number: note, amount: amt, prevBalance: curBal, newBalance: newBal,
+        status: "Approved", time: nowFormatted()
+      }
+    });
+    alert("ব্যালেন্স আপডেট সফল! ✅");
+  };
+
+  window.toggleLock = async (cleanKey, newStatus) => {
+    await set(ref(db, `Users/${cleanKey}/status`), newStatus);
+    alert("স্ট্যাটাস আপডেট হয়েছে: " + newStatus);
+  };
+
+  window.setStockBal = async (cleanKey, cur) => {
+    const val = prompt("স্টক লক ব্যালেন্স পরিমাণ (৳):", cur);
+    if (val === null) return;
+    await set(ref(db, `Users/${cleanKey}/stockBalance`), Number(val || 0));
+    alert("স্টক ব্যালেন্স সেভ হয়েছে! 🔒");
+  };
+
+  // নতুন ইউজার তৈরি
+  window.createNewUser = async () => {
+    const email = document.getElementById("newEmail").value.trim();
+    const password = document.getElementById("newPass").value.trim();
+    if (!email || password.length < 6) return alert("সঠিক ইমেইল ও কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন!");
+
+    const cleanKey = cleanEmailKey(email);
+    const existSnap = await get(ref(db, "Users/" + cleanKey));
+    if (existSnap.exists()) return alert("এই ইউজার ইতিমধ্যে আছে!");
+
+    try {
+      await createUserWithEmailAndPassword(secondaryAuth, email, password);
+      await signOut(secondaryAuth);
+      await set(ref(db, "Users/" + cleanKey), {
+        email, password, pin: password, balance: 0,
+        appLink: document.getElementById("newAppLink").value.trim() || "সংযুক্ত নেই",
+        nidName: document.getElementById("newNidName").value.trim(),
+        dob: document.getElementById("newDob").value,
+        phone: document.getElementById("newPhone").value.trim(),
+        address: document.getElementById("newAddress").value.trim(),
+        status: "Active", creator: "Admin", createdDate: nowFormatted()
+      });
+      alert("নতুন ইউজার সফলভাবে তৈরি হয়েছে! 🎉");
+    } catch (e) {
+      alert("ত্রুটি: " + e.message);
+    }
+  };
+
+  // ড্রাইভ অফার
+  window.loadOffers = () => {
+    const op = document.getElementById("offerOp").value;
+    const cat = document.getElementById("offerCat").value;
+    onValue(ref(db, `DriveOffers/${op}/${cat}`), (snap) => {
+      const box = document.getElementById("offersList");
+      box.innerHTML = "";
+      if (snap.exists()) {
+        snap.forEach(c => {
+          const o = c.val();
+          const div = document.createElement("div");
+          div.className = "item-box";
+          div.style.display = "flex";
+          div.style.justifyContent = "space-between";
+          div.style.alignItems = "center";
+          div.innerHTML = `
+            <div><b>${esc(o.title)}</b><br/>মূল্য: ৳ ${esc(o.price)} | ক্যাশব্যাক: ৳ ${esc(o.cashback || 0)}</div>
+            <button class="btn-red" onclick="deleteOffer('${op}','${cat}','${c.key}')">মুছুন 🗑️</button>
+          `;
+          box.appendChild(div);
+        });
+      } else {
+        box.innerHTML = "<p>এই ক্যাটাগরিতে কোনো অফার নেই।</p>";
+      }
+    }, { onlyOnce: false });
+  };
+
+  window.addOffer = async () => {
+    const op = document.getElementById("offerOp").value;
+    const cat = document.getElementById("offerCat").value;
+    const title = document.getElementById("offerTitle").value.trim();
+    const price = Number(document.getElementById("offerPrice").value);
+    const cashback = Number(document.getElementById("offerCashback").value || 0);
+    if (!title || !price) return alert("অফারের নাম ও মূল্য দিন!");
+    await push(ref(db, `DriveOffers/${op}/${cat}`), { title, price, cashback });
+    document.getElementById("offerTitle").value = "";
+    document.getElementById("offerPrice").value = "";
+    document.getElementById("offerCashback").value = "";
+    alert("অফার যোগ হয়েছে! ✅");
+  };
+
+  window.deleteOffer = async (op, cat, id) => {
+    if (confirm("অফারটি ডিলিট করতে চান?")) {
+      await remove(ref(db, `DriveOffers/${op}/${cat}/${id}`));
+    }
+  };
+
+  // লাইভ চ্যাট
+  function openChat(cleanKey, userEmail) {
+    activeChatCleanEmail = cleanKey;
+    document.getElementById("activeChatTitle").innerText = "চ্যাট: " + userEmail;
+    set(ref(db, `Chats/${cleanKey}/status`), "read_by_admin");
+    if (chatMsgUnsub) chatMsgUnsub();
+    chatMsgUnsub = onValue(ref(db, `Chats/${cleanKey}/messages`), (snap) => {
+      const box = document.getElementById("chatMessages");
+      box.innerHTML = "";
+      if (snap.exists()) {
+        snap.forEach(m => {
+          const v = m.val();
+          const d = document.createElement("div");
+          d.className = "msg " + (v.sender === "admin" ? "admin" : "user");
+          d.innerText = v.message || "";
+          box.appendChild(d);
+        });
+      }
+      box.scrollTop = box.scrollHeight;
+    });
+  }
+
+  window.sendAdminReply = async () => {
+    const input = document.getElementById("chatInput");
+    const msg = input.value.trim();
+    if (!activeChatCleanEmail || !msg) return;
+    await push(ref(db, `Chats/${activeChatCleanEmail}/messages`), {
+      sender: "admin", message: msg, timestamp: Date.now()
+    });
+    await update(ref(db, `Chats/${activeChatCleanEmail}`), {
+      lastActive: Date.now(), status: "read_by_admin"
+    });
+    input.value = "";
+  };
+
+  // সেটিংস সেভ
+  window.savePromoBasic = async () => {
+    await update(ref(db, "Promo"), {
+      notice: document.getElementById("setNotice").value.trim(),
+      adTitle: document.getElementById("setAdTitle").value.trim(),
+      adLink: document.getElementById("setAdLink").value.trim()
+    });
+    alert("নোটিশ ও বিজ্ঞাপন সেভ হয়েছে! 💾");
+  };
+
+  window.savePaymentAndHelpline = async () => {
+    await set(ref(db, "AdminNumbers"), {
+      bkash1: document.getElementById("setBkash1").value.trim(),
+      bkash2: document.getElementById("setBkash2").value.trim(),
+      bank: document.getElementById("setBank").value.trim()
+    });
+    await update(ref(db, "Promo"), {
+      addBalanceChargePercent: Number(document.getElementById("setAddCharge").value || 0),
+      transferCharge: Number(document.getElementById("setTransferCharge").value || 0)
+    });
+    await set(ref(db, "SocialLinks/phone"), document.getElementById("setHelpline").value.trim());
+    alert("পেমেন্ট নাম্বার ও চার্জ সেটিংস সেভ হয়েছে! ✅");
+  };
+
+  // হিসেব খাতা
+  function renderHisab() {
+    let dep = 0, due = 0;
+    const box = document.getElementById("hisabCustomerList");
+    box.innerHTML = "";
+    hisabCustomers.forEach((c, idx) => {
+      const b = Number(c.balance || 0);
+      if (b >= 0) dep += b; else due += Math.abs(b);
+      const div = document.createElement("div");
+      div.className = "item-box";
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div><b>${esc(c.name)}</b> — <span style="color:${b >= 0 ? '#2e7d32' : '#c62828'}; font-weight:bold;">
+            ${b >= 0 ? 'জমা: ৳ ' + b : 'বাকি: ৳ ' + Math.abs(b)}
+          </span></div>
+          <div>
+            <button class="btn-green" onclick="updateHisabEntry(${idx}, true)">+ জমা</button>
+            <button class="btn-red" onclick="updateHisabEntry(${idx}, false)">- বাকি</button>
+          </div>
+        </div>
+      `;
+      box.appendChild(div);
+    });
+    document.getElementById("hisabSummary").innerHTML =
+      `<span style="color:#2e7d32">অল জমা: ৳ ${dep.toFixed(2)}</span> | <span style="color:#c62828">অল বাকি: ৳ ${due.toFixed(2)}</span>`;
+  }
+
+  window.addHisabCustomer = async () => {
+    const name = document.getElementById("newHisabName").value.trim();
+    if (!name) return;
+    hisabCustomers.push({ name, balance: 0, logs: [] });
+    await set(ref(db, "AdminHisab/customers"), JSON.stringify(hisabCustomers));
+    document.getElementById("newHisabName").value = "";
+  };
+
+  window.updateHisabEntry = async (idx, isDep) => {
+    const amt = Number(prompt(isDep ? "জমা টাকার পরিমাণ:" : "বাকি টাকার পরিমাণ:"));
+    if (!amt || amt <= 0) return;
+    const note = prompt("খাত/বিবরণ:", "সাধারণ") || "সাধারণ";
+    const c = hisabCustomers[idx];
+    c.balance = Number(c.balance || 0) + (isDep ? amt : -amt);
+    if (!c.logs) c.logs = [];
+    c.logs.push(`${nowFormatted()} | ${isDep ? "জমা" : "বাকি/জমা"}: ৳${amt} (${note}) | ব্যালেন্স: ৳${c.balance}`);
+    await set(ref(db, "AdminHisab/customers"), JSON.stringify(hisabCustomers));
+  };
+</script>
+</body>
+</html>
